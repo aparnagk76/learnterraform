@@ -112,15 +112,11 @@ resource "aws_security_group" "allow_ssh_http" {
   }
 }
 
-data "aws_availability_zones" "available" {
-    state = "available"
-}
-
 # Create an Ec2 instance
 resource "aws_instance" "web" {
   ami = "ami-06fcc1f0bc2c8943f"
   associate_public_ip_address = "true"
-  availability_zone = data.aws_availability_zones.available.names[0]
+  availability_zone = aws_subnet.pub.availability_zone #data.aws_availability_zones.available.names[0]
   subnet_id = aws_subnet.pub.id
   instance_type = "t2.micro"
   vpc_security_group_ids = [aws_security_group.allow_ssh_http.id]
