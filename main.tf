@@ -13,6 +13,7 @@ resource "aws_internet_gateway" "igw" {
     env = var.environment
   }
 }
+
 # Create a public and private subnet
 resource "aws_subnet"  "pub" {
   vpc_id     = aws_vpc.aparnavpc.id
@@ -96,3 +97,47 @@ resource "aws_security_group" "allow_ssh_http" {
   }
 }
 
+data "aws_availability_zones" "available" {
+    state = "available"
+}
+
+# Create an Ec2 instance
+resource "aws_instance" "web" {
+  ami = "ami-06fcc1f0bc2c8943f"
+  associate_public_ip_address = "true"
+  availability_zone = data.aws_availability_zones.available.names[0]
+  subnet_id = aws_subnet.pub.id
+  instance_type = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.allow_ssh_http.id]
+  key_name = aws_key_pair.terraformkeypair.key_name
+  connection {
+    host = self.public_ip
+    user = "ec2-user"
+    private_key = file("terraformkeypair.pem")
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo amazon-linux-extras install -y nginx1.12",
+      "sudo service nginx start",
+      "sudo wget http://download.redis.io/redis-stable.tar.gz"
+    ]
+  }
+  tags = {
+    env = var.environment
+  }
+}
+
+resource "tls_private_key" "terraformkeypair" {
+  algorithm   = "RSA"
+  ecdsa_curve = "2048"
+}
+
+resource "aws_key_pair" "terraformkeypair" {
+  key_name   = "terraformkeypair"
+  public_key = tls_private_key.terraformkeypair.public_key_openssh
+}
+
+resource "local_file" "terraformkeypair" {
+  content = tls_private_key.terraformkeypair.private_key_pem
+  filename = "terraformkeypair.pem"
+}
