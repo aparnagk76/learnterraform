@@ -51,6 +51,21 @@ resource "aws_route_table_association" "rta" {
   subnet_id = aws_subnet.pub.id
 }
 
+resource "tls_private_key" "terraformkeypair" {
+  algorithm   = "RSA"
+  ecdsa_curve = "2048"
+}
+
+resource "aws_key_pair" "terraformkeypair" {
+  key_name   = "terraformkeypair"
+  public_key = tls_private_key.terraformkeypair.public_key_openssh
+}
+
+resource "local_file" "terraformkeypair" {
+  content = tls_private_key.terraformkeypair.private_key_pem
+  filename = "terraformkeypair.pem"
+}
+
 # Create a security group to allow ssh and http connections
 resource "aws_security_group" "allow_ssh_http" {
   vpc_id = aws_vpc.aparnavpc.id
@@ -125,19 +140,4 @@ resource "aws_instance" "web" {
   tags = {
     env = var.environment
   }
-}
-
-resource "tls_private_key" "terraformkeypair" {
-  algorithm   = "RSA"
-  ecdsa_curve = "2048"
-}
-
-resource "aws_key_pair" "terraformkeypair" {
-  key_name   = "terraformkeypair"
-  public_key = tls_private_key.terraformkeypair.public_key_openssh
-}
-
-resource "local_file" "terraformkeypair" {
-  content = tls_private_key.terraformkeypair.private_key_pem
-  filename = "terraformkeypair.pem"
 }
