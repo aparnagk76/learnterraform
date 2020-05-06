@@ -57,7 +57,7 @@ resource "tls_private_key" "terraformkeypair" {
 }
 
 resource "aws_key_pair" "terraformkeypair" {
-  key_name   = "terraformkeypair"
+  key_name   = join("-", ["terraformkeypair",var.environment])
   public_key = tls_private_key.terraformkeypair.public_key_openssh
 }
 
